@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lateral Join Visualization</title>
+    <style>
+        :root {
+            --primary-color: #d63384;
+            --primary-light: #e685b5;
+            --secondary-color: #6c31eb;
+            --accent-color: #a855f7;
+            --text-color: #ffffff;
+            --text-dark: #e9ecef;
+            --background-dark: #1a1625;
+            --background-darker: #13111c;
+            --background-light: #2a2438;
+            --border-color: #36304a;
+            --success-color: #52C41A;
+            --warning-color: #FAAD14;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a1625 0%, #331d47 50%, #471d47 100%);
+        }
+        
+        h1, h2 {
+            color: var(--text-color);
+            font-weight: 500;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        
+        .tables {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 20px;
+        }
+        
+        .table {
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            background-color: var(--background-dark);
+        }
+        
+        .table-title {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 15px;
+            font-weight: 500;
+            text-align: center;
+        }
+        
+        .table-content {
+            min-width: 200px;
+        }
+        
+        .result-table {
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            margin-top: 20px;
+            background-color: var(--background-dark);
+        }
+        
+        .result-title {
+            background-color: var(--accent-color);
+            color: white;
+            padding: 12px 15px;
+            font-weight: 500;
+            text-align: center;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            color: var(--text-dark);
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        th {
+            background-color: var(--background-light);
+            font-weight: 500;
+            color: var(--text-color);
+        }
+        
+        tr.highlight {
+            background-color: rgba(214, 51, 132, 0.2);
+            animation: flash 1.5s;
+        }
+        
+        tr.result-highlight {
+            background-color: rgba(168, 85, 247, 0.2);
+            animation: flash-accent 1.5s;
+        }
+        
+        @keyframes flash {
+            0% { background-color: rgba(214, 51, 132, 0.2); }
+            50% { background-color: rgba(214, 51, 132, 0.4); }
+            100% { background-color: rgba(214, 51, 132, 0.2); }
+        }
+        
+        @keyframes flash-accent {
+            0% { background-color: rgba(168, 85, 247, 0.2); }
+            50% { background-color: rgba(168, 85, 247, 0.4); }
+            100% { background-color: rgba(168, 85, 247, 0.2); }
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 30px 0;
+        }
+        
+        button {
+            padding: 12px 24px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            font-weight: 500;
+        }
+        
+        button:hover {
+            background-color: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.25);
+        }
+        
+        button:disabled {
+            background-color: var(--border-color);
+            color: var(--background-darker);
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+        
+        .explanation {
+            background-color: var(--background-light);
+            border-left: 4px solid var(--primary-color);
+            padding: 16px;
+            margin: 24px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .code-block {
+            background-color: var(--background-darker);
+            border-left: 4px solid var(--accent-color);
+            padding: 16px;
+            margin: 24px 0;
+            border-radius: 0 8px 8px 0;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            white-space: pre;
+            overflow-x: auto;
+            color: #e9ecef;
+        }
+        
+        .arrow {
+            width: 40px;
+            height: 40px;
+            background-color: var(--accent-color);
+            position: relative;
+            margin: 20px auto;
+            clip-path: polygon(0% 20%, 60% 20%, 60% 0%, 100% 50%, 60% 100%, 60% 80%, 0% 80%);
+            animation: arrow-pulse 2s infinite;
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.5);
+        }
+        
+        @keyframes arrow-pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        
+        .current-step {
+            font-weight: 500;
+            margin: 16px 0;
+            text-align: center;
+            height: 50px;
+            color: var(--primary-light);
+        }
+        
+        .sql-explanation {
+            margin-top: 40px;
+            padding: 24px;
+            background-color: var(--background-light);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+    </style>
+</head>
+<body>
+    <h1>Lateral Join Visualization</h1>
+    
+    <div class="explanation">
+        <p>A lateral join allows the right side of the join to reference columns from the left side. This enables row-by-row processing within SQL, where for each row from the left table, the right subquery is executed using values from that row.</p>
+    </div>
+    
+    <div class="code-block">SELECT c.customer_id, c.name, o.order_id, o.amount
+FROM customers c
+CROSS JOIN LATERAL (
+    SELECT order_id, amount 
+    FROM orders 
+    WHERE customer_id = c.customer_id
+    ORDER BY amount DESC 
+    LIMIT 2
+) o;</div>
+    
+    <p>This animation demonstrates how a lateral join works to find the top 2 highest-value orders for each customer:</p>
+    
+    <div class="controls">
+        <button id="prevBtn" disabled>Previous Step</button>
+        <button id="nextBtn">Next Step</button>
+        <button id="resetBtn">Reset</button>
+        <button id="playBtn">Auto Play</button>
+    </div>
+    
+    <div class="current-step" id="stepExplanation">
+        Press "Next Step" to begin the visualization
+    </div>
+    
+    <div class="container">
+        <div class="tables">
+            <div class="table">
+                <div class="table-title">customers</div>
+                <div class="table-content">
+                    <table id="customersTable">
+                        <thead>
+                            <tr>
+                                <th>customer_id</th>
+                                <th>name</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr data-id="101">
+                                <td>101</td>
+                                <td>Alice</td>
+                            </tr>
+                            <tr data-id="102">
+                                <td>102</td>
+                                <td>Bob</td>
+                            </tr>
+                            <tr data-id="103">
+                                <td>103</td>
+                                <td>Charlie</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="arrow" id="lateralArrow"></div>
+            
+            <div class="table">
+                <div class="table-title">orders</div>
+                <div class="table-content">
+                    <table id="ordersTable">
+                        <thead>
+                            <tr>
+                                <th>order_id</th>
+                                <th>customer_id</th>
+                                <th>amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr data-customer="101" data-amount="150">
+                                <td>1001</td>
+                                <td>101</td>
+                                <td>150</td>
+                            </tr>
+                            <tr data-customer="101" data-amount="300">
+                                <td>1002</td>
+                                <td>101</td>
+                                <td>300</td>
+                            </tr>
+                            <tr data-customer="101" data-amount="200">
+                                <td>1003</td>
+                                <td>101</td>
+                                <td>200</td>
+                            </tr>
+                            <tr data-customer="102" data-amount="50">
+                                <td>1004</td>
+                                <td>102</td>
+                                <td>50</td>
+                            </tr>
+                            <tr data-customer="102" data-amount="100">
+                                <td>1005</td>
+                                <td>102</td>
+                                <td>100</td>
+                            </tr>
+                            <tr data-customer="103" data-amount="400">
+                                <td>1006</td>
+                                <td>103</td>
+                                <td>400</td>
+                            </tr>
+                            <tr data-customer="103" data-amount="75">
+                                <td>1007</td>
+                                <td>103</td>
+                                <td>75</td>
+                            </tr>
+                            <tr data-customer="103" data-amount="350">
+                                <td>1008</td>
+                                <td>103</td>
+                                <td>350</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="result-table">
+            <div class="result-title">Result of Lateral Join</div>
+            <div class="table-content">
+                <table id="resultTable">
+                    <thead>
+                        <tr>
+                            <th>customer_id</th>
+                            <th>name</th>
+                            <th>order_id</th>
+                            <th>amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="sql-explanation">
+        <h2>Key Points About Lateral Joins</h2>
+        <ul>
+            <li><strong>Row-by-row processing:</strong> For each row in the left table, the right subquery is executed once.</li>
+            <li><strong>Correlation:</strong> The right side can reference columns from the left side (like <code>c.customer_id</code> in our example).</li>
+            <li><strong>Common use cases:</strong> Finding top N per group, calculating running totals, or performing complex row-based calculations.</li>
+            <li><strong>Types:</strong> <code>CROSS JOIN LATERAL</code> (shown here) or <code>LEFT JOIN LATERAL</code> (preserves left rows even when subquery returns no rows).</li>
+        </ul>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const customerTable = document.getElementById('customersTable');
+            const orderTable = document.getElementById('ordersTable');
+            const resultTable = document.getElementById('resultTable').querySelector('tbody');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const playBtn = document.getElementById('playBtn');
+            const stepExplanation = document.getElementById('stepExplanation');
+            
+            let currentStep = 0;
+            let totalSteps = 12; // Total number of steps in our animation
+            let autoPlayInterval = null;
+            
+            const steps = [
+                {
+                    explanation: "We start with two tables: 'customers' and 'orders'",
+                    action: () => {
+                        resetHighlights();
+                    }
+                },
+                {
+                    explanation: "For LATERAL join, we process one row at a time from the left table",
+                    action: () => {
+                        resetHighlights();
+                        highlightCustomer('101');
+                    }
+                },
+                {
+                    explanation: "For customer 101 (Alice), we execute the subquery to find orders",
+                    action: () => {
+                        resetHighlights();
+                        highlightCustomer('101');
+                        highlightCustomerOrders('101');
+                    }
+                },
+                {
+                    explanation: "The subquery selects top 2 orders by amount for customer 101",
+                    action: () => {
+                        resetHighlights();
+                        highlightCustomer('101');
+                        const topOrders = getTopOrdersForCustomer('101', 2);
+                        topOrders.forEach(row => highlightOrderRow(row));
+                        
+                        addToResultTable('101', 'Alice', '1002', '300');
+                        addToResultTable('101', 'Alice', '1003', '200');
+                    }
+                },
+                {
+                    explanation: "Moving to the next customer: Bob (customer_id: 102)",
+                    action: () => {
+                        resetHighlights();
+                        highlightCustomer('102');
+                    }
+                },
+                {
+                    explanation: "For customer 102 (Bob), we execute the subquery again",
+                    action: () => {
+                        resetHighlights();
+                        highlightCustomer('102');
+                        highlightCustomerOrders('102');
+                    }
+                },
+                {
+                    explanation: "The subquery selects top 2 orders by amount for customer 102",
+                    action: () => {
+                        resetHighlights();
+                        highlightCustomer('102');
+                        const topOrders = getTopOrdersForCustomer('102', 2);
+                        topOrders.forEach(row => highlightOrderRow(row));
+                        
+                        addToResultTable('102', 'Bob', '1005', '100');
+                        addToResultTable('102', 'Bob', '1004', '50');
+                    }
+                },
+                {
+                    explanation: "Moving to the final customer: Charlie (customer_id: 103)",
+                    action: () => {
+                        resetHighlights();
+                        highlightCustomer('103');
+                    }
+                },
+                {
+                    explanation: "For customer 103 (Charlie), we execute the subquery again",
+                    action: () => {
+                        resetHighlights();
+                        highlightCustomer('103');
+                        highlightCustomerOrders('103');
+                    }
+                },
+                {
+                    explanation: "The subquery selects top 2 orders by amount for customer 103",
+                    action: () => {
+                        resetHighlights();
+                        highlightCustomer('103');
+                        const topOrders = getTopOrdersForCustomer('103', 2);
+                        topOrders.forEach(row => highlightOrderRow(row));
+                        
+                        addToResultTable('103', 'Charlie', '1006', '400');
+                        addToResultTable('103', 'Charlie', '1008', '350');
+                    }
+                },
+                {
+                    explanation: "All customers have been processed - this is our final result",
+                    action: () => {
+                        resetHighlights();
+                        highlightAllResultRows();
+                    }
+                },
+                {
+                    explanation: "The LATERAL join processed each customer row and applied the subquery to get their top orders",
+                    action: () => {
+                        resetHighlights();
+                    }
+                }
+            ];
+            
+            function resetHighlights() {
+                // Remove all highlights from tables
+                document.querySelectorAll('tr.highlight').forEach(row => {
+                    row.classList.remove('highlight');
+                });
+                
+                document.querySelectorAll('tr.result-highlight').forEach(row => {
+                    row.classList.remove('result-highlight');
+                });
+            }
+            
+            function highlightCustomer(customerId) {
+                const customerRow = customerTable.querySelector(`tbody tr[data-id="${customerId}"]`);
+                if (customerRow) {
+                    customerRow.classList.add('highlight');
+                }
+            }
+            
+            function highlightCustomerOrders(customerId) {
+                const orderRows = orderTable.querySelectorAll(`tbody tr[data-customer="${customerId}"]`);
+                orderRows.forEach(row => {
+                    row.classList.add('highlight');
+                });
+            }
+            
+            function highlightOrderRow(orderRow) {
+                orderRow.classList.add('highlight');
+            }
+            
+            function highlightAllResultRows() {
+                const resultRows = resultTable.querySelectorAll('tr');
+                resultRows.forEach(row => {
+                    row.classList.add('result-highlight');
+                });
+            }
+            
+            function getTopOrdersForCustomer(customerId, limit) {
+                const orderRows = Array.from(orderTable.querySelectorAll(`tbody tr[data-customer="${customerId}"]`));
+                return orderRows.sort((a, b) => {
+                    return parseInt(b.getAttribute('data-amount')) - parseInt(a.getAttribute('data-amount'));
+                }).slice(0, limit);
+            }
+            
+            function addToResultTable(customerId, name, orderId, amount) {
+                const newRow = document.createElement('tr');
+                newRow.innerHTML = `
+                    <td>${customerId}</td>
+                    <td>${name}</td>
+                    <td>${orderId}</td>
+                    <td>${amount}</td>
+                `;
+                newRow.classList.add('result-highlight');
+                resultTable.appendChild(newRow);
+            }
+            
+            function clearResultTable() {
+                resultTable.innerHTML = '';
+            }
+            
+            function updateButtons() {
+                prevBtn.disabled = currentStep === 0;
+                nextBtn.disabled = currentStep === totalSteps - 1;
+            }
+            
+            function goToStep(step) {
+                if (step < 0 || step >= totalSteps) return;
+                
+                currentStep = step;
+                updateButtons();
+                
+                // Execute step action
+                steps[currentStep].action();
+                
+                // Update explanation
+                stepExplanation.textContent = steps[currentStep].explanation;
+            }
+            
+            // Button event listeners
+            nextBtn.addEventListener('click', () => {
+                goToStep(currentStep + 1);
+            });
+            
+            prevBtn.addEventListener('click', () => {
+                goToStep(currentStep - 1);
+            });
+            
+            resetBtn.addEventListener('click', () => {
+                clearResultTable();
+                goToStep(0);
+            });
+            
+            playBtn.addEventListener('click', () => {
+                if (autoPlayInterval) {
+                    // Stop autoplay
+                    clearInterval(autoPlayInterval);
+                    autoPlayInterval = null;
+                    playBtn.textContent = 'Auto Play';
+                } else {
+                    // Start autoplay
+                    playBtn.textContent = 'Stop';
+                    autoPlayInterval = setInterval(() => {
+                        if (currentStep < totalSteps - 1) {
+                            goToStep(currentStep + 1);
+                        } else {
+                            clearInterval(autoPlayInterval);
+                            autoPlayInterval = null;
+                            playBtn.textContent = 'Auto Play';
+                        }
+                    }, 2000);
+                }
+            });
+            
+            // Initialize
+            goToStep(0);
+        });
+    </script>
+</body>
+</html>
