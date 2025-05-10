@@ -591,7 +591,104 @@ CROSS JOIN LATERAL (
                 }
             }
             
-            function highlight<!DOCTYPE html>
+            function highlightCustomerOrders(customerId) {
+                const orderRows = orderTable.querySelectorAll(`tbody tr[data-customer="${customerId}"]`);
+                orderRows.forEach(row => {
+                    row.classList.add('highlight');
+                });
+            }
+            
+            function highlightOrderRow(orderRow) {
+                orderRow.classList.add('highlight');
+            }
+            
+            function highlightAllResultRows() {
+                const resultRows = resultTable.querySelectorAll('tr');
+                resultRows.forEach(row => {
+                    row.classList.add('result-highlight');
+                });
+            }
+            
+            function getTopOrdersForCustomer(customerId, limit) {
+                const orderRows = Array.from(orderTable.querySelectorAll(`tbody tr[data-customer="${customerId}"]`));
+                return orderRows.sort((a, b) => {
+                    return parseInt(b.getAttribute('data-amount')) - parseInt(a.getAttribute('data-amount'));
+                }).slice(0, limit);
+            }
+            
+            function addToResultTable(customerId, name, orderId, amount) {
+                const newRow = document.createElement('tr');
+                newRow.innerHTML = `
+                    <td>${customerId}</td>
+                    <td>${name}</td>
+                    <td>${orderId}</td>
+                    <td>${amount}</td>
+                `;
+                newRow.classList.add('result-highlight');
+                resultTable.appendChild(newRow);
+            }
+            
+            function clearResultTable() {
+                resultTable.innerHTML = '';
+            }
+            
+            function updateButtons() {
+                prevBtn.disabled = currentStep === 0;
+                nextBtn.disabled = currentStep === totalSteps - 1;
+            }
+            
+            function goToStep(step) {
+                if (step < 0 || step >= totalSteps) return;
+                
+                currentStep = step;
+                updateButtons();
+                
+                // Execute step action
+                steps[currentStep].action();
+                
+                // Update explanation
+                stepExplanation.textContent = steps[currentStep].explanation;
+            }
+            
+            // Button event listeners
+            nextBtn.addEventListener('click', () => {
+                goToStep(currentStep + 1);
+            });
+            
+            prevBtn.addEventListener('click', () => {
+                goToStep(currentStep - 1);
+            });
+            
+            resetBtn.addEventListener('click', () => {
+                clearResultTable();
+                goToStep(0);
+            });
+            
+            playBtn.addEventListener('click', () => {
+                if (autoPlayInterval) {
+                    // Stop autoplay
+                    clearInterval(autoPlayInterval);
+                    autoPlayInterval = null;
+                    playBtn.textContent = 'Auto Play';
+                } else {
+                    // Start autoplay
+                    playBtn.textContent = 'Stop';
+                    autoPlayInterval = setInterval(() => {
+                        if (currentStep < totalSteps - 1) {
+                            goToStep(currentStep + 1);
+                        } else {
+                            clearInterval(autoPlayInterval);
+                            autoPlayInterval = null;
+                            playBtn.textContent = 'Auto Play';
+                        }
+                    }, 2000);
+                }
+            });
+            
+            // Initialize
+            goToStep(0);
+        });
+    </script><!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
